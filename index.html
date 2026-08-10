@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Musiri Solar Quotation &amp; Site Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+
+<button id="settingsBtn" class="settings-btn">⚙ Settings</button>
+
+<header class="top-bar">
+  <div class="brand">
+    <span class="brand-mark">☀</span>
+    <div>
+      <h1>Musiri Solar Quotation &amp; Site Analysis</h1>
+      <p class="tagline">Customer → Site → Roof → Electricity → System → Battery → Pricing → Comparison → Quotation</p>
+    </div>
+  </div>
+</header>
+
+<div class="wizard-shell">
+
+  <div class="stepper" id="stepper"></div>
+
+  <!-- STEP 1: CUSTOMER -->
+  <section class="panel wizard-step" data-step="1" id="step-1">
+    <h2><span class="step">01</span> Customer Details</h2>
+    <div class="form-grid cols-2">
+      <label>Customer Name <input type="text" id="custName" placeholder="e.g. R. Karthikeyan"></label>
+      <label>Mobile Number <input type="tel" id="custMobile" placeholder="98765 43210"></label>
+      <label>Email <input type="email" id="custEmail" placeholder="customer@example.com"></label>
+      <label>Date <input type="date" id="custDate"></label>
+      <label>Site Address <input type="text" id="custAddress" placeholder="Door No, Street"></label>
+      <label>Village / Town <input type="text" id="custVillage" placeholder="e.g. Musiri"></label>
+      <label>District <input type="text" id="custDistrict" value="Tiruchirappalli"></label>
+      <label>PIN Code <input type="text" id="custPincode" placeholder="621211"></label>
+    </div>
+    <div class="form-grid cols-2">
+      <label>Quotation Number (auto-generated, editable)
+        <input type="text" id="custQuoteNumber">
+      </label>
+    </div>
+    <div class="step-nav"><button class="btn-primary" onclick="SolarApp.App.goToStep(2)">Next: Site →</button></div>
+  </section>
+
+  <!-- STEP 2: SITE -->
+  <section class="panel wizard-step" data-step="2" id="step-2">
+    <h2><span class="step">02</span> Site &amp; Footprint</h2>
+    <div class="form-grid cols-2">
+      <label>Latitude <input type="number" id="lat" step="0.000001" placeholder="10.941200"></label>
+      <label>Longitude <input type="number" id="lon" step="0.000001" placeholder="78.442800"></label>
+    </div>
+    <label class="file-field">
+      Building footprint (KML / KMZ / GeoJSON)
+      <input type="file" id="footprintFile" accept=".kml,.kmz,.geojson,.json">
+      <span class="file-hint" id="footprintHint">Upload a footprint, or draw the roof outline directly on the map below using the polygon tool (top-right of the map)</span>
+    </label>
+    <div id="siteMap"></div>
+    <div class="readout-line" id="areaReadout">Footprint area — awaiting KML/KMZ/GeoJSON or a drawn polygon</div>
+
+    <h2 style="margin-top:26px;"><span class="step">02b</span> Site Survey</h2>
+    <div class="form-grid cols-3">
+      <label>Roof Orientation
+        <select id="roofOrientation"><option>South</option><option>South-East</option><option>South-West</option><option>East</option><option>West</option><option>North</option><option>Flat/RCC</option></select>
+      </label>
+      <label>Roof Tilt (°) <input type="number" id="roofTilt" value="10"></label>
+      <label>Roof Type
+        <select id="roofType"><option>RCC (flat)</option><option>Metal Sheet</option><option>Tile</option><option>Other</option></select>
+      </label>
+      <label>Parapet Height (m) <input type="number" id="parapetHeight" value="1.0" step="0.1"></label>
+      <label>Shadow Obstacles? <select id="shadowObstacles"><option>No</option><option>Yes — minor</option><option>Yes — significant</option></select></label>
+      <label>Tree Obstruction? <select id="treeObstruction"><option>No</option><option>Yes — minor</option><option>Yes — significant</option></select></label>
+      <label>Nearby Tall Buildings <input type="text" id="nearbyBuildings" placeholder="e.g. none / 2-storey to the east"></label>
+      <label>Electrical Connection <select id="electricalConnection"><option>Domestic (LT)</option><option>Commercial (LT)</option><option>Industrial (LT/HT)</option></select></label>
+      <label>Phase <select id="connectionPhase"><option>Single Phase</option><option>Three Phase</option></select></label>
+      <label>Sanctioned Load (kW) <input type="number" id="sanctionedLoad" value="5"></label>
+    </div>
+    <label>Site Notes <textarea id="siteNotes" placeholder="Any other observations, photo references, etc."></textarea></label>
+
+    <div class="step-nav">
+      <button class="btn-secondary" onclick="SolarApp.App.goToStep(1)">← Back</button>
+      <button class="btn-primary" onclick="SolarApp.App.goToStep(3)">Next: Roof →</button>
+    </div>
+  </section>
+
+  <!-- STEP 3: ROOF -->
+  <section class="panel wizard-step" data-step="3" id="step-3">
+    <h2><span class="step">03</span> Roof Capacity &amp; Panel Layout</h2>
+    <div class="summary-cards">
+      <div class="summary-card"><span class="lbl">Roof Area</span><span class="val" id="roofAreaDisplay">—</span></div>
+      <div class="summary-card"><span class="lbl">Roof Area (sq.ft)</span><span class="val" id="roofAreaSqftDisplay">—</span></div>
+      <div class="summary-card"><span class="lbl">Perimeter</span><span class="val" id="perimeterDisplay">—</span></div>
+      <div class="summary-card"><span class="lbl">Latitude / Longitude</span><span class="val" id="roofLatLonDisplay">—</span></div>
+    </div>
+
+    <div class="form-grid cols-3">
+      <label>Solar Panel Model <select id="panelSelect"></select></label>
+      <label>Panel Orientation <select id="panelOrientation"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>
+      <label>Roof Utilization % (cap) <input type="number" id="utilizationPct" value="65"></label>
+      <label>Edge Setback (m) <input type="number" id="edgeSetbackM" value="0.5" step="0.1"></label>
+      <label>Parapet Setback (m) <input type="number" id="parapetSetbackM" value="1.0" step="0.1"></label>
+      <label>Walkway Width (m) <input type="number" id="walkwayWidthM" value="0.6" step="0.1"></label>
+      <label>Row Spacing (m) <input type="number" id="rowSpacingM" value="0.3" step="0.05"></label>
+      <label>Column Spacing (m) <input type="number" id="columnSpacingM" value="0.02" step="0.01"></label>
+    </div>
+    <button class="run-btn" id="calcRoofBtn">Calculate Roof Capacity &amp; Layout</button>
+
+    <div class="summary-cards" style="margin-top:18px;">
+      <div class="summary-card"><span class="lbl">Usable Roof Area</span><span class="val" id="usableAreaDisplay">—</span></div>
+      <div class="summary-card"><span class="lbl">Panel Layout (rows × cols)</span><span class="val" id="rowsColsDisplay">—</span></div>
+      <div class="summary-card"><span class="lbl">Max Panels That Fit</span><span class="val" id="finalPanelCountDisplay">—</span></div>
+      <div class="summary-card"><span class="lbl">Maximum Roof Capacity</span><span class="val" id="finalCapacityDisplay">—</span></div>
+      <div class="summary-card"><span class="lbl">Used Roof Area</span><span class="val" id="usedAreaDisplay">—</span></div>
+      <div class="summary-card"><span class="lbl">Remaining Roof Area</span><span class="val" id="remainingAreaDisplay">—</span></div>
+    </div>
+    <p class="disclaimer">Panel layout shown on the map (Step 2's map, scroll up) is an <b>approximate rectangular-packing visualization</b> inside the roof's oriented bounding box — not a precise per-panel geo-referenced design for irregular roof shapes. Final layout is confirmed at site survey.</p>
+
+    <div class="step-nav">
+      <button class="btn-secondary" onclick="SolarApp.App.goToStep(2)">← Back</button>
+      <button class="btn-primary" onclick="SolarApp.App.goToStep(4)">Next: Electricity →</button>
+    </div>
+  </section>
+
+  <!-- STEP 4: ELECTRICITY -->
+  <section class="panel wizard-step" data-step="4" id="step-4">
+    <h2><span class="step">04</span> Electricity Consumption</h2>
+    <div class="form-grid">
+      <label>Input Mode
+        <select id="consumptionMode">
+          <option value="average">Average Monthly Units</option>
+          <option value="monthly12">12-Month Breakdown</option>
+        </select>
+      </label>
+    </div>
+
+    <div id="avgConsumptionBlock" class="form-grid cols-2">
+      <label>Average Monthly Consumption (kWh/units) <input type="number" id="avgMonthlyUnits" value="750"></label>
+      <label>Current Monthly EB Bill (₹, optional) <input type="number" id="currentBillInput" placeholder="e.g. 4800"></label>
+    </div>
+
+    <div id="monthly12Block" class="form-grid cols-3" style="display:none;"></div>
+
+    <button class="run-btn" id="calcConsumptionBtn">Calculate Consumption Summary</button>
+
+    <div class="summary-cards" style="margin-top:16px;">
+      <div class="summary-card"><span class="lbl">Annual Consumption</span><span class="val" id="consAnnualDisplay">—</span></div>
+      <div class="summary-card"><span class="lbl">Average Monthly</span><span class="val" id="consAvgDisplay">—</span></div>
+      <div class="summary-card"><span class="lbl">Peak Monthly</span><span class="val" id="consPeakDisplay">—</span></div>
+      <div class="summary-card"><span class="lbl">Minimum Monthly</span><span class="val" id="consMinDisplay">—</span></div>
+    </div>
+    <p class="readout-line" id="tariffInfoDisplay"></p>
+
+    <div class="step-nav">
+      <button class="btn-secondary" onclick="SolarApp.App.goToStep(3)">← Back</button>
+      <button class="btn-primary" onclick="SolarApp.App.goToStep(5)">Next: Solar System →</button>
+    </div>
+  </section>
+
+  <!-- STEP 5: SOLAR SYSTEM -->
+  <section class="panel wizard-step" data-step="5" id="step-5">
+    <h2><span class="step">05</span> Recommended Solar System Size</h2>
+    <button class="run-btn" id="fetchClimateBtn">Fetch Solar Resource Data &amp; Compute Sizing</button>
+    <p class="status" id="climateStatus"></p>
+
+    <div class="summary-cards">
+      <div class="summary-card"><span class="lbl">Roof Maximum Capacity</span><span class="val" id="sizingRoofMax">—</span></div>
+      <div class="summary-card"><span class="lbl">Consumption-based Need</span><span class="val" id="sizingConsBased">—</span></div>
+      <div class="summary-card"><span class="lbl">Recommended Capacity</span><span class="val" id="sizingRecommended">—</span></div>
+      <div class="summary-card"><span class="lbl">Limited By</span><span class="val" id="sizingLimitedBy">—</span></div>
+    </div>
+    <div class="form-grid cols-2">
+      <label>Override Recommended Capacity (kWp) <input type="number" id="recommendedKWOverride" step="0.1"></label>
+      <label>Data Source <input type="text" id="dataSourceDisplay" readonly></label>
+    </div>
+
+    <div class="summary-cards">
+      <div class="summary-card"><span class="lbl">Annual Generation (est.)</span><span class="val" id="annualGenDisplay">—</span></div>
+      <div class="summary-card"><span class="lbl">Specific Yield</span><span class="val" id="specificYieldDisplay">—</span></div>
+      <div class="summary-card"><span class="lbl">Avg. Peak Sun Hours</span><span class="val" id="peakSunDisplay">—</span></div>
+      <div class="summary-card"><span class="lbl">Total System Losses</span><span class="val" id="lossPctDisplay">—</span></div>
+    </div>
+    <canvas id="genChart" height="110"></canvas>
+    <p class="disclaimer">Estimated Generation — Subject to Site Survey. Solar resource data from NASA POWER / Open-Meteo / PVGIS (free public sources, automatic fallback).</p>
+
+    <div class="step-nav">
+      <button class="btn-secondary" onclick="SolarApp.App.goToStep(4)">← Back</button>
+      <button class="btn-primary" onclick="SolarApp.App.goToStep(6)">Next: Battery →</button>
+    </div>
+  </section>
+
+  <!-- STEP 6: BATTERY -->
+  <section class="panel wizard-step" data-step="6" id="step-6">
+    <h2><span class="step">06</span> Battery &amp; Backup (for Hybrid / Off-Grid)</h2>
+    <div class="form-grid cols-3">
+      <label>Critical Load (kW) <input type="number" id="criticalLoadKW" value="2" step="0.1"></label>
+      <label>Required Backup (hours) <input type="number" id="backupHours" value="6"></label>
+      <label>Battery Model <select id="batterySelect"></select></label>
+    </div>
+    <button class="run-btn" id="calcBatteryBtn">Calculate Battery Sizing (preview)</button>
+
+    <div class="summary-cards">
+      <div class="summary-card"><span class="lbl">Raw Energy Required</span><span class="val" id="battRawEnergy">—</span></div>
+      <div class="summary-card"><span class="lbl">Units Needed</span><span class="val" id="battUnitsNeeded">—</span></div>
+      <div class="summary-card"><span class="lbl">Total Nameplate Capacity</span><span class="val" id="battNameplate">—</span></div>
+      <div class="summary-card"><span class="lbl">Total Usable Capacity</span><span class="val" id="battUsable">—</span></div>
+    </div>
+    <p class="disclaimer">This preview is used for both the Hybrid and Off-Grid proposals in Step 8 (Off-Grid sizes for full-day autonomy since it has no grid backup, so its battery bank will be larger than Hybrid's for the same critical load).</p>
+
+    <div class="step-nav">
+      <button class="btn-secondary" onclick="SolarApp.App.goToStep(5)">← Back</button>
+      <button class="btn-primary" onclick="SolarApp.App.goToStep(7)">Next: Pricing →</button>
+    </div>
+  </section>
+
+  <!-- STEP 7: PRICING -->
+  <section class="panel wizard-step" data-step="7" id="step-7">
+    <h2><span class="step">07</span> Pricing Settings</h2>
+    <p class="disclaimer">Full panel/inverter/battery price lists and BOM component pricing live in <b>⚙ Settings</b> (top-right) — those apply to every quotation. Below are the per-quotation overrides for installation method and GST.</p>
+    <div class="form-grid cols-2">
+      <label>Installation Method
+        <select id="installMethodQuote"><option value="percentage">% of Equipment Cost</option><option value="fixed">Fixed Amount</option></select>
+      </label>
+      <label>Installation Value <input type="number" id="installValueQuote"></label>
+      <label>Transportation (₹) <input type="number" id="transportQuote"></label>
+      <label>GST % <input type="number" id="gstPctQuote" step="0.1"></label>
+    </div>
+    <button class="run-btn" id="previewBomBtn">Preview On-Grid BOM at Recommended Capacity</button>
+    <div class="db-table-wrap"><table class="db-table" id="bomPreviewTable"></table></div>
+
+    <div class="step-nav">
+      <button class="btn-secondary" onclick="SolarApp.App.goToStep(6)">← Back</button>
+      <button class="btn-primary" onclick="SolarApp.App.goToStep(8)">Next: Comparison →</button>
+    </div>
+  </section>
+
+  <!-- STEP 8: COMPARISON -->
+  <section class="panel wizard-step" data-step="8" id="step-8">
+    <h2><span class="step">08</span> On-Grid / Hybrid / Off-Grid Comparison</h2>
+    <button class="run-btn" id="buildQuotationsBtn">Build All Three System Proposals</button>
+    <div id="comparisonWrap" style="overflow-x:auto;"></div>
+    <div class="warning-box" id="warningsBox"></div>
+
+    <div class="step-nav">
+      <button class="btn-secondary" onclick="SolarApp.App.goToStep(7)">← Back</button>
+      <button class="btn-primary" onclick="SolarApp.App.goToStep(9)">Next: Quotation →</button>
+    </div>
+  </section>
+
+  <!-- STEP 9: QUOTATION -->
+  <section class="panel wizard-step" data-step="9" id="step-9">
+    <h2><span class="step">09</span> Final Quotation</h2>
+    <div class="form-grid cols-2">
+      <label>Quotation Number <input type="text" id="finalQuoteNumber"></label>
+      <label>Recommended System
+        <select id="recommendedSystemSelect"><option value="On-Grid">On-Grid</option><option value="Hybrid">Hybrid</option><option value="Off-Grid">Off-Grid</option></select>
+      </label>
+    </div>
+    <label>Terms &amp; Conditions (editable) <textarea id="termsTextarea" style="min-height:120px;"></textarea></label>
+
+    <div class="project-actions">
+      <button id="downloadPdfBtn" class="btn-primary" style="flex:0 0 auto; padding:11px 20px; border-radius:9px;">⬇ Download Quotation PDF</button>
+    </div>
+
+    <h2 style="margin-top:26px;"><span class="step">💾</span> Project Save / Load</h2>
+    <div class="project-actions">
+      <button id="saveProjectBtn">Save Project</button>
+      <button id="exportProjectBtn">Export Project (JSON)</button>
+      <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer;">
+        <input type="file" id="importProjectFile" accept=".json" style="max-width:180px;">
+      </label>
+    </div>
+    <div id="savedProjectsList" style="margin-top:10px;"></div>
+
+    <div class="step-nav">
+      <button class="btn-secondary" onclick="SolarApp.App.goToStep(8)">← Back</button>
+    </div>
+  </section>
+
+</div>
+
+<!-- ===================== SETTINGS MODAL ===================== -->
+<div class="modal-overlay" id="settingsModal" hidden>
+  <div class="modal-box">
+    <button class="modal-close" id="settingsCloseBtn">✕</button>
+    <h2>⚙ Settings — Company, Prices &amp; Defaults</h2>
+    <div class="settings-tabs">
+      <button class="settings-tab-btn active" data-tab="company">Company</button>
+      <button class="settings-tab-btn" data-tab="panels">Panels</button>
+      <button class="settings-tab-btn" data-tab="inverters">Inverters</button>
+      <button class="settings-tab-btn" data-tab="batteries">Batteries</button>
+      <button class="settings-tab-btn" data-tab="bom">BOM Pricing</button>
+      <button class="settings-tab-btn" data-tab="install">Install/AMC/GST</button>
+      <button class="settings-tab-btn" data-tab="tariff">Tariff</button>
+      <button class="settings-tab-btn" data-tab="roof">Roof Defaults</button>
+      <button class="settings-tab-btn" data-tab="losses">System Losses</button>
+    </div>
+
+    <form id="settingsForm" onsubmit="return false;">
+
+      <div class="settings-tab active" id="tab-company">
+        <div class="form-grid cols-2">
+          <label>Company Name <input id="companyName"></label>
+          <label>Quotation Prefix <input id="companyPrefix"></label>
+          <label>Phone <input id="companyPhone"></label>
+          <label>Email <input id="companyEmail"></label>
+          <label>Website <input id="companyWebsite"></label>
+          <label>Address <input id="companyAddress"></label>
+        </div>
+      </div>
+
+      <div class="settings-tab" id="tab-panels">
+        <div class="db-table-wrap"><table class="db-table"><thead></thead><tbody id="panelsTableBody"></tbody></table></div>
+        <button type="button" class="db-add-row" id="addPanelRow">+ Add Panel Model</button>
+      </div>
+
+      <div class="settings-tab" id="tab-inverters">
+        <div class="db-table-wrap"><table class="db-table"><thead></thead><tbody id="invertersTableBody"></tbody></table></div>
+        <button type="button" class="db-add-row" id="addInverterRow">+ Add Inverter Model</button>
+      </div>
+
+      <div class="settings-tab" id="tab-batteries">
+        <div class="db-table-wrap"><table class="db-table"><thead></thead><tbody id="batteriesTableBody"></tbody></table></div>
+        <button type="button" class="db-add-row" id="addBatteryRow">+ Add Battery Model</button>
+      </div>
+
+      <div class="settings-tab" id="tab-bom">
+        <div class="form-grid cols-3">
+          <label>Mounting Structure (₹/Wp) <input id="bom_mountingStructurePerWp"></label>
+          <label>DC Cable (₹/kW) <input id="bom_dcCablePerKW"></label>
+          <label>AC Cable (₹/kW) <input id="bom_acCablePerKW"></label>
+          <label>DCDB (₹ flat) <input id="bom_dcdbFlat"></label>
+          <label>ACDB (₹ flat) <input id="bom_acdbFlat"></label>
+          <label>Earthing (₹ flat) <input id="bom_earthingFlat"></label>
+          <label>Lightning Arrester (₹ flat) <input id="bom_lightningArresterFlat"></label>
+          <label>MC4 Connectors (₹/kW) <input id="bom_mc4ConnectorsPerKW"></label>
+          <label>Civil Work (₹/kW) <input id="bom_civilWorkPerKW"></label>
+          <label>Other Charges (₹/kW) <input id="bom_otherChargesPerKW"></label>
+        </div>
+      </div>
+
+      <div class="settings-tab" id="tab-install">
+        <div class="form-grid cols-3">
+          <label>Installation Method
+            <select id="installMethod"><option value="percentage">Percentage</option><option value="fixed">Fixed</option></select>
+          </label>
+          <label>Installation % <input id="installPercentage"></label>
+          <label>Installation Fixed (₹) <input id="installFixed"></label>
+          <label>Transportation (₹ flat) <input id="installTransport"></label>
+          <label>AMC On-Grid (₹/kW/yr) <input id="amcOnGrid"></label>
+          <label>AMC Hybrid/Off-Grid (₹/kW/yr) <input id="amcHybridOffGrid"></label>
+          <label>GST % <input id="gstPct"></label>
+        </div>
+      </div>
+
+      <div class="settings-tab" id="tab-tariff">
+        <div class="form-grid cols-2">
+          <label>Tariff Version/Label <input id="tariffVersion"></label>
+          <label>As Of (YYYY-MM) <input id="tariffAsOf"></label>
+        </div>
+        <div class="db-table-wrap">
+          <table class="db-table">
+            <thead><tr><th>Up to Units (blank = last/unlimited slab)</th><th>Rate ₹/unit</th><th></th></tr></thead>
+            <tbody id="tariffTableBody"></tbody>
+          </table>
+        </div>
+        <button type="button" class="db-add-row" id="addTariffSlab">+ Add Slab</button>
+        <div class="form-grid cols-2" style="margin-top:10px;">
+          <label>Flat Rate Fallback (₹/unit) <input id="tariffFlatFallback"></label>
+        </div>
+        <p class="disclaimer">Do not treat these as authoritative TANGEDCO/TNPDCL rates — verify current slabs before quoting; edit here to match what your customer's actual bill shows.</p>
+      </div>
+
+      <div class="settings-tab" id="tab-roof">
+        <div class="form-grid cols-3">
+          <label>Utilization % (cap) <input id="roof_utilizationPct"></label>
+          <label>Edge Setback (m) <input id="roof_edgeSetbackM"></label>
+          <label>Parapet Setback (m) <input id="roof_parapetSetbackM"></label>
+          <label>Walkway Width (m) <input id="roof_walkwayWidthM"></label>
+          <label>Row Spacing (m) <input id="roof_rowSpacingM"></label>
+          <label>Column Spacing (m) <input id="roof_columnSpacingM"></label>
+          <label>Default Panel Orientation
+            <select id="roof_panelOrientation"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-tab" id="tab-losses">
+        <div class="form-grid cols-3">
+          <label>Temperature Loss % <input id="loss_temperaturePct"></label>
+          <label>Inverter Loss % <input id="loss_inverterPct"></label>
+          <label>Cable Loss % <input id="loss_cablePct"></label>
+          <label>Soiling Loss % <input id="loss_soilingPct"></label>
+          <label>Mismatch Loss % <input id="loss_mismatchPct"></label>
+          <label>Shading Loss % <input id="loss_shadingPct"></label>
+          <label>Availability Loss % <input id="loss_availabilityPct"></label>
+        </div>
+      </div>
+
+    </form>
+
+    <div class="step-nav">
+      <button class="btn-secondary" id="resetSettingsBtn">Reset to Defaults</button>
+      <button class="btn-primary" id="saveSettingsBtn">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Solar resource data: NASA POWER / Open-Meteo / PVGIS (free public APIs, automatic fallback). All prices, panel/inverter/battery specs, and tariff figures are editable in Settings — verify before issuing a final quotation. This tool produces a <b>preliminary estimate</b>; final design is subject to physical site survey and utility approval.
+</footer>
+
+<script src="js/config.js"></script>
+<script src="js/geo.js"></script>
+<script src="js/climate.js"></script>
+<script src="js/roof-layout.js"></script>
+<script src="js/generation.js"></script>
+<script src="js/sizing.js"></script>
+<script src="js/pricing.js"></script>
+<script src="js/quotation.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/pdf.js"></script>
+<script src="js/map.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/settings-ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
